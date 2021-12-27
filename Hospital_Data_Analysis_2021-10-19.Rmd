@@ -1,0 +1,275 @@
+---
+title: "Analysis of Hospital Data"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r}
+
+if (!require("readxl")){ install.packages("readxl")}
+if (!require("pander")){ install.packages("pander")}
+if (!require("summarytools")){ install.packages("summarytools")}
+if (!require("psych")){ install.packages("psych")}
+if (!require("tidyverse")){ install.packages("tidyverse")}
+if (!require("epitools")){install.packages("epitools")}
+if (!require("gmodels")){install.packages("gmodels")}
+
+library(readxl)
+library(tidyverse)
+library(pander)
+library(summarytools)
+library(psych)
+library(epitools)
+library(gmodels)
+
+```
+
+Getting the data into the session from excel. 
+
+```{r}
+hospital <- read_excel("hospital_data_2021.xls")
+
+glimpse(hospital)
+
+```
+
+Here's what variables are in the  *hospital* dataset: 
+
+- *age* (years)
+- *bp* blood pressure
+- *lengthstay* length of individuals stay (days)
+- *ethnic* Ethnicity (in 7 categories)
+- *sex* 
+- *day* (day of the week admitted)
+- *pulse* resting pulse rate
+- *prevhospad* (previous hospital admissions) 
+- *charlson* - a marker of co-morbidity
+- *agegroup* 
+- *dead* (did they die during their hospital stay)
+
+We are going to now do just a little bit of tidying up of the data  
+
+We need to tell R which of these are categorical (factors) and what labels to give for the factors. Run the R command below to do this. 
+
+```{r}
+hospital$ethnic <- factor(hospital$ethnic, levels=c(1,2,3,4,5,6,7,8,9,10), labels = c("white", "black carribean", "black african","black other","indian","pakistani", "bangladeshi", "chinese", "other", "missing"))
+
+hospital$sex <- factor(hospital$sex, levels=c(1,2), labels = c("male","female"))
+
+hospital$day <- factor(hospital$day, levels=c(1,2,3,4,5,6,7), labels=c("Friday","Monday","Saturday","Sunday","Thursday","Tuesday","Wednesday"))
+                                                                       
+                                                                  
+hospital$dead <- factor(hospital$dead, levels=c(0,1), labels = c("alive","dead"))
+
+hospital$agegroup <- factor(hospital$agegroup, levels=c(1,2,3,4,5,6), labels=c("under 50","50-59", "60-69", "70-79", "80-89","90 and above"))
+```
+
+```{r}
+summary(hospital)
+
+hist(hospital$age)
+```
+
+
+
+1)	Is there a difference in blood pressure *bp* at admission (outcome) between those who die and those who do not die *dead* (exposure)? 
+
+First plot the histogram- a reminder of the code generically hist(dataset$outcome)
+```{r}
+hist(hospital$bp)
+```
+
+
+Now conducted the t-test for the difference in blood pressure between those who died and did not die in hospital.
+
+Generically:
+
+t.test(dataset$outcomevariable ~ datset$exposurevariable)
+
+
+```{r}
+t.test(hospital$bp ~ hospital$dead)
+```
+
+What is the mean  blood pressure in each group?
+
+Dead  = 71.7
+Alive = 76.9
+
+Mean Difference Alive-dead (you need to do this by hand) = 5.2
+
+What is the 95% CI around the mean difference? 95% CI = 1.66 - 8.77
+
+What is the p=value? = 0.00441
+
+Is the p-value significant? Yes, assuming your threshold was set at p <= 0.05 
+
+Describe what this p-value means. 
+
+
+
+2)	Now have a look at whether pulse *pulse* rate differs between those who lived and those who died *dead*. 
+
+First plot the histogram
+```{r}
+hist(hospital$pulse)
+```
+
+
+Now conducted the t-test for the difference in pulse between those who died and did not die in hospital.
+
+```{r}
+t.test(hospital$pulse ~ hospital$dead)
+
+```
+
+What is the mean pulse rate in each group?
+
+Dead  = 92.8
+Alive = 88.4
+
+Mean Difference Alive-dead  = 4.4
+
+What is the 95% CI around the mean difference?  95% CI = -9.6 - 0.75
+
+What is the p=value = 0.09286
+
+
+
+**Chi-square tests and Odds Ratios**
+
+Investigate the association between sex *sex*  and death *dead* (the variable indicating whether people die during the admission). Conduct a chi-squared test and interpret the p value. 
+
+
+CrossTable(datset$exposurevariable,  dataset$outcomevariable, chisq=TRUE)
+
+The CrossTable command gives you a cross tabulation of two variables. It shows the following in the different row:
+row 1 = N - observed number 
+row 2 = chi-square contribution
+row 3 = row percentages  (this will be the row we look at to get the prevalence for males and females)
+row 4 = column percentages
+row 5 = table total %- not really used
+
+```{r}
+CrossTable(hospital$sex, hospital$dead, chisq = TRUE)
+```
+
+
+What percentages of males  died?  
+
+What percentages of females died?
+
+Look at the p-value from the Pearson's Chi-square test (use this for the p-value unless your dataset is small).  What is this value? p = 0.439
+
+Is this a significant association? No
+
+
+
+Now use R to calculate the odds ratios using the command below:
+
+Generically:
+epitab(dataset$exposurevariable, dataset$outcomevariable)
+
+```{r}
+epitab(hospital$sex, hospital$dead)
+```
+
+Describe the odds ratio for females to males and provide the 95% CI:
+
++type answer here
+
+  
+
+
+Now examine the association between previous hospital admission in the last year  *prevhospad* and death *death*.
+
+Chi-square test
+```{r}
+CrossTable(hospital$prevhospad, hospital$dead, chisq = TRUE)
+```
+
+What percentages of people who were not previous hospitalised (coded 0) died?
+
+What percentages of people who were previously  hospitalised (coded as 1) died?
+
+Look at the p-value from the Pearson's Chi-square test.  What is this value?  p=
+
+Is this a significant association?
+
+
+
+Odds ratio for the association between previous hospital admission *prevhospad* and death *death*
+
+```{r}
+epitab(hospital$prevhospad, hospital$dead)
+```
+
+Describe the odds ratio for an hospital admission in the previous year and odds of death and the describe the 95% CI
+
++type answer here
+
+
+
+
+The association between day of the week of admission *day* and death *dead*. Conduct a chi-squared test and interpret the p value.
+
+```{r}
+CrossTable(hospital$day, hospital$dead, chisq = TRUE)
+```
+
+
+What day of the week did the greatest %  people die on? Sunday
+
+What day of the week did the least % of people die on? Friday, Monday, Tuesday
+
+Look at the p-value from the Pearson's Chi-square test.  What is this value? p = 0.424
+
+Is this a significant association?- No
+
+
+Describe the odds ratio for the highest level of co-morbidity to the lowest level.
+
++type answer here
+```{r}
+head(hospital$lengthstay)
+summary(hospital$lengthstay)
+```
+```{r}
+##Logistic regression 
+hospital_coded <- read_excel("hospital_data_2021.xls")
+
+hospital_coded$ethnic <- factor(hospital_coded$ethnic, levels=c(1,2,3,4,5,6,7,8,9,10), labels = c("white", "black carribean", "black african","black other","indian","pakistani", "bangladeshi", "chinese", "other", "missing"))
+
+hospital_coded$sex <- factor(hospital_coded$sex, levels=c(1,2), labels = c("male","female"))
+
+hospital_coded$day <- factor(hospital_coded$day, levels=c(1,2,3,4,5,6,7), labels=c("Friday","Monday","Saturday","Sunday","Thursday","Tuesday","Wednesday"))
+                                                                       
+
+hospital_coded$agegroup <- factor(hospital_coded$agegroup, levels=c(1,2,3,4,5,6), labels=c("under 50","50-59", "60-69", "70-79", "80-89","90 and above"))
+
+#Fit the model
+glm_fit <- glm(hospital_coded$dead ~ hospital_coded$age + hospital_coded$bp, + hospital_coded$lengthstay + hospital_coded$lengthstay, data = hospital_coded, family = binomial) 
+summary(glm_fit)
+```
+
+```{r}
+library(caret)
+glm.probs <- predict(glm_fit,type = "response")
+glm.probs[1:5]
+```
+ 
+ 
+```{r}
+glm.pred <- ifelse(glm.probs > 0.5, "Up", "Down")
+```
+ 
+```{r}
+attach(hospital_coded)
+table(glm.pred, dead)
+```
+ 
+ 
+ 
